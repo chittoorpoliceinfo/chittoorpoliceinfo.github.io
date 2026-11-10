@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>CHITTOOR POLICE INFORMATION</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Poppins',sans-serif;background:#e8f5f9;padding:20px;display:flex;justify-content:center}
+    .container{width:100%;max-width:1200px;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+    header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .logo{width:70px;height:70px;background:#0b5b46;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:700}
+    h1{margin:0;font-size:20px;color:#073026}
+    .subtitle{margin:0;color:#0b5441;font-size:13px}
+    .searchBox,.pwdBox{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cfdde0;border-radius:8px;margin:12px 0;font-size:14px;font-family:inherit}
+    .loginCard{max-width:360px;margin:40px auto;text-align:center}
+    .btn{background:#0b5b46;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-family:inherit;font-weight:600;cursor:pointer;width:100%}
+    .btn.link{background:none;color:#0b5b46;padding:0;font-weight:400;text-decoration:underline;width:auto}
+    .tableWrap{overflow:auto;max-height:72vh;border-radius:6px;border:1px solid #e6f1ee;background:linear-gradient(180deg,#fff,#fbfeff)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{position:sticky;top:0;background:#e9f7ef;padding:10px;border-bottom:2px solid #d1e7dd;text-align:left}
+    tbody td{padding:8px;border-bottom:1px solid #f0f6f5;vertical-align:top}
+    tbody tr:hover{background:#f4fbf7}
+    th:nth-child(2), td:nth-child(2){min-width:300px}
+    th:nth-child(3), td:nth-child(3){min-width:95px}
+    th:nth-child(4), td:nth-child(4){min-width:95px}
+    th:nth-child(5), td:nth-child(5){min-width:95px}
+    @media (max-width:760px){
+      body{padding:10px}
+      .logo{width:56px;height:56px;font-size:14px}
+      th:nth-child(2), td:nth-child(2){min-width:200px}
+    }
+    .msg{color:#9b1c1c;font-size:13px;min-height:18px}
+    .small{font-size:12px;color:#0b5441}
+    .hidden{display:none}
+    .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">CPI</div>
+      <div>
+        <h1>CHITTOOR POLICE INFORMATION</h1>
+        <div class="subtitle">Chittoor Police Personnel Information — searchable</div>
+      </div>
+    </header>
+
+    <!-- LOGIN -->
+    <section id="loginView" class="loginCard">
+      <div class="small">Authorised users only</div>
+      <input id="pwd" class="pwdBox" type="password" placeholder="Enter password" autocomplete="current-password">
+      <button id="loginBtn" class="btn">Login</button>
+      <p id="loginMsg" class="msg"></p>
+    </section>
+
+    <!-- SEARCH -->
+    <section id="appView" class="hidden">
+      <div class="bar">
+        <span class="small">Type at least 3 characters to search.</span>
+        <button id="logoutBtn" class="btn link">Logout</button>
+      </div>
+      <input id="search" class="searchBox" placeholder="Search any detail… (Name, CFMS ID, Rank, AADHAR, Mobile, Place etc.)">
+      <p id="msg" class="msg"></p>
+      <div class="tableWrap">
+        <table aria-label="Chittoor police data">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px" id="count"></p>
+    </section>
+  </div>
+
+  <script>
+    // Paste your Apps Script Web App URL (ends with /exec). This URL is not a secret.
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzpdluiVn3S9BAARUzpmpqmy6m9rC3wD46QHx0x5WekDesTxscpVxhmFKUzZo4fEkrs/exec';
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // Password is kept only for this browser tab; closing the tab logs out.
+    let PWD = '';
+    try { PWD = sessionStorage.getItem('cpi_pwd') || ''; } catch (e) {}
+
+    async function api(payload) {
+      // text/plain avoids a CORS preflight, which Apps Script does not support
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(Object.assign({ password: PWD }, payload))
+      });
+      return res.json();
+    }
+
+    function showApp(on) {
+      $('loginView').classList.toggle('hidden', on);
+      $('appView').classList.toggle('hidden', !on);
+      (on ? $('search') : $('pwd')).focus();
+    }
+
+    async function login() {
+      PWD = $('pwd').value;
+      if (!PWD) return;
+      $('loginBtn').disabled = true;
+      $('loginMsg').textContent = 'Checking…';
+      try {
+        const r = await api({ action: 'login' });
+        if (r.ok) {
+          try { sessionStorage.setItem('cpi_pwd', PWD); } catch (e) {}
+          $('loginMsg').textContent = '';
+          showApp(true);
+        } else {
+          $('loginMsg').textContent = r.error || 'Wrong password';
+        }
+      } catch (e) {
+        $('loginMsg').textContent = 'Cannot reach server: ' + e.message;
+      }
+      $('loginBtn').disabled = false;
+    }
+
+    function clearResults() {
+      $('thead').innerHTML = $('tbody').innerHTML = '';
+      $('count').textContent = ''; $('msg').textContent = '';
+    }
+
+    function logout(message) {
+      PWD = '';
+      try { sessionStorage.removeItem('cpi_pwd'); } catch (e) {}
+      clearResults();
+      $('search').value = ''; $('pwd').value = '';
+      $('loginMsg').textContent = message || '';
+      showApp(false);
+    }
+
+    let timer, reqNo = 0;
+    function onSearch() {
+      clearTimeout(timer);
+      const q = $('search').value.trim();
+      if (q.length < 3) { clearResults(); return; }
+      timer = setTimeout(() => runSearch(q), 400);
+    }
+
+    async function runSearch(q) {
+      const my = ++reqNo;
+      $('msg').textContent = 'Searching…';
+      try {
+        const r = await api({ action: 'search', q });
+        if (my !== reqNo) return;               // a newer search is running
+        if (r.auth === false) { logout(r.error || 'Please login again.'); return; }
+        if (!r.ok) { $('msg').textContent = r.error; return; }
+        $('msg').textContent = '';
+        render(r);
+      } catch (e) {
+        if (my === reqNo) $('msg').textContent = 'Cannot reach server: ' + e.message;
+      }
+    }
+
+    function render(r) {
+      $('thead').innerHTML = '<tr>' + r.headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
+      $('tbody').innerHTML = r.rows.map(row =>
+        '<tr>' + r.headers.map((_, c) => '<td>' + esc(row[c]) + '</td>').join('') + '</tr>'
+      ).join('');
+      $('count').textContent = r.total > r.rows.length
+        ? `Showing first ${r.rows.length} of ${r.total} matches — refine your search.`
+        : `Showing ${r.total} records.`;
+    }
+
+    $('loginBtn').addEventListener('click', login);
+    $('pwd').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('search').addEventListener('input', onSearch);
+    $('logoutBtn').addEventListener('click', () => logout());
+
+    showApp(!!PWD);
+  </script>
+</body>
+</html>
